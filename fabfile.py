@@ -1,4 +1,5 @@
 import logging
+import os
 from StringIO import StringIO
 import Queue
 
@@ -14,11 +15,11 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 
-@task
+
 def configure_apt_sources():
     sudo("echo 'deb     http://ftp.ccc.uba.ar/pub/linux/debian/debian/     wheezy main contrib non-free\ndeb-src http://ftp.ccc.uba.ar/pub/linux/debian/debian/     wheezy main contrib non-free\ndeb     http://security.debian.org/ wheezy/updates  main contrib non-free\ndeb-src http://security.debian.org/ wheezy/updates  main contrib non-free' > /etc/apt/sources.list")
 
-@task
+
 def configure_apt_proxy():
     with settings(warn_only=True):
         result = sudo('test -e /etc/apt/apt.conf.d/01proxy')
@@ -27,7 +28,7 @@ def configure_apt_proxy():
     else:
         print 'Apt proxy is already configured.'
 
-@task
+
 def configure_wirephone_sources():
     with settings(warn_only=True):
         result = sudo('test -e /etc/apt/sources.list.d/wirephone.list')
@@ -39,12 +40,11 @@ def configure_wirephone_sources():
     else:
         print 'Wirephone sources is already configured.'
 
-@task
 def install_wirephone_suite():
     dependencies = []
     for line in sudo('apt-cache depends wirephone-suite').split('\n'):
         if 'Depends:' in line:
-            if line.split()[1] not in config.get('apt', 'exclude_modules'):
+            if line.split()[1] not in [ m.strip() for m in config.get('apt', 'exclude_modules').split(',') ]:
                 dependencies.append(line.split()[1])
             else:
                 print 'Excluding', line.split()[1]
@@ -52,12 +52,36 @@ def install_wirephone_suite():
     sudo('apt-get -y install %s' % ' '.join(dependencies))
     sudo('supervisorctl reload')
 
-@task
 def configure_apt():
     configure_apt_sources()
     configure_apt_proxy()
     configure_wirephone_sources()
     sudo('apt-get update')
 
-# def clone_repo(repo):
-#     git.clone(config.get('repos', repo))
+@task
+def prepare_env():
+    configure_apt()
+    install_wirephone_suite()
+
+@task
+def provision(project, branch='develop'):
+    sudo('apt-get install -y git')
+    git.clone(config.get('repos', project))
+    git.checkout(project, branch)
+    with cd(os.path.join(config.get('vm', 'base_dir'), project)):
+        sudo('python setup.py develop')
+    sudo('supervisorctl restart %s' % project)
+
+@task
+def vagrant_config():
+    out = local('vagrant ssh-config', capture=True)
+    for line in out.split('\n')[1:]:
+        key,val = line.strip().split()
+        if key == 'HostName':
+            env.hosts = ['%s:22' % val]
+        elif key == 'User':
+            env.user = val
+        elif key == 'Port':
+            port = val
+        elif key == 'IdentityFile':
+            env.key_filename = val
