@@ -8,6 +8,8 @@ from watchdog.events import LoggingEventHandler, FileSystemEventHandler
 from watchdog.observers import Observer
 from fabric.api import sudo, settings, task, env, local, get, put, cd
 
+import fabwirephone as wirephone
+import fabwiremonitor as wiremonitor
 from git import git
 from config import config
 
@@ -24,7 +26,7 @@ def configure_apt_proxy():
     with settings(warn_only=True):
         result = sudo('test -e /etc/apt/apt.conf.d/01proxy')
     if result.failed:
-        sudo("echo 'Acquire::http::Proxy \"http://%s\"'; > /etc/apt/apt.conf.d/01proxy" % config.get('apt', 'proxy_url'))
+        sudo("echo 'Acquire::http::Proxy \"http://%s\";' > /etc/apt/apt.conf.d/01proxy" % config.get('apt', 'proxy_url'))
     else:
         print 'Apt proxy is already configured.'
 
@@ -66,11 +68,25 @@ def prepare_env():
 @task
 def provision(project, branch='develop'):
     sudo('apt-get install -y git')
+    project_name = project
     git.clone(config.get('repos', project))
     git.checkout(project, branch)
+    if config.has_section(project):
+        project_name = config.get(project, 'name')
+    sudo("perl -i -pe 's/\/usr\/bin\/%s/\/usr\/local\/bin\/%s/g' /etc/supervisor/conf.d/%s.conf" % (project_name, project_name, project_name))
     with cd(os.path.join(config.get('vm', 'base_dir'), project)):
         sudo('python setup.py develop')
-    sudo('supervisorctl restart %s' % project)
+    sudo('supervisorctl reload')
+
+@task
+def run(project):
+    logging.info('Running %s', project)
+    module = globals().get(project)
+    if module is not None:
+        module.run()
+    else:
+        logging.warning('Project does not have a run command yet.')
+
 
 @task
 def vagrant_config():
