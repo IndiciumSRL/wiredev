@@ -1,0 +1,21 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+            "folder_exclude_patterns":
+            [
+                "wirephone",
+                "wirerouting",
+                "wirefax",
+                "wiremonitorserver",
+                "wiregui"
+            ]
+		}
+	],
+    "settings":
+    {
+        "tab_size": 4,
+        "translate_tabs_to_spaces": true
+    }
+}

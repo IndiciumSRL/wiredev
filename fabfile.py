@@ -10,6 +10,7 @@ from fabric.api import sudo, settings, task, env, local, get, put, cd
 
 import fabwirephone as wirephone
 import fabwiremonitor as wiremonitor
+import fabwirerouting as wirerouting
 from git import git
 from config import config
 
@@ -64,10 +65,13 @@ def configure_apt():
 def prepare_env():
     configure_apt()
     install_wirephone_suite()
+    sudo('apt-get install -y git')
+    sudo('apt-get install -y python-pip')
+    sudo('pip install pytest')
+    sudo('pip install mock')
 
 @task
 def provision(project, branch='develop'):
-    sudo('apt-get install -y git')
     project_name = project
     git.clone(config.get('repos', project))
     git.checkout(project, branch)
