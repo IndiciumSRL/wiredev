@@ -29,6 +29,24 @@ class CodeEvents(FileSystemEventHandler):
         logging.info('Not reloading because its not a Python file that has changed.')
 
 @task
+def test_prepare_integration():
+    sudo('supervisorctl stop all')
+    sudo("su postgres -c 'dropdb wirephone'")
+    sudo("su wirephone -c 'createdb wirephone'")
+    sudo("su wirephone -c 'psql wirephone < /vagrant/wirerouting/jenkins_wirephone.sql'")
+    sudo("su wirephone -c 'alembic -c /etc/wirephone/wirephone.ini upgrade head'")
+    sudo('supervisorctl start all')
+
+@task
+def test_integration():
+    with cd('/vagrant/wirerouting'):
+        sudo("su wirephone -c '/usr/local/bin/py.test -v -x --config=/etc/wirephone/wirerouting.ini --bddtestpath=/vagrant/wirerouting/tests/integration_data/'")
+@task
+def save_integration_db():
+    with cd('/vagrant/wirerouting'):
+        sudo("su wirephone -c 'pg_dump wirephone' > /vagrant/wirerouting/jenkins_wirephone.sql")        
+
+@task
 def run():
     sudo('supervisorctl restart wirephone')
     try:

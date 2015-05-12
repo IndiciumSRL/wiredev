@@ -20,6 +20,7 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%Y-%m-%d %H:%M:%S')
 
 
+
 def configure_apt_sources():
     sudo("echo 'deb     http://ftp.ccc.uba.ar/pub/linux/debian/debian/     wheezy main contrib non-free\ndeb-src http://ftp.ccc.uba.ar/pub/linux/debian/debian/     wheezy main contrib non-free\ndeb     http://security.debian.org/ wheezy/updates  main contrib non-free\ndeb-src http://security.debian.org/ wheezy/updates  main contrib non-free' > /etc/apt/sources.list")
 
@@ -93,16 +94,22 @@ def run(project):
         logging.warning('Project does not have a run command yet.')
 
 
-@task
 def vagrant_config():
     out = local('vagrant ssh-config', capture=True)
+    host = None
+    port = 22
     for line in out.split('\n')[1:]:
         key,val = line.strip().split()
         if key == 'HostName':
-            env.hosts = ['%s:22' % val]
+            host = val
         elif key == 'User':
             env.user = val
         elif key == 'Port':
             port = val
         elif key == 'IdentityFile':
             env.key_filename = val
+
+    if host:
+        env.hosts = ['%s:%s' % (host, port)]
+
+vagrant_config()

@@ -46,13 +46,16 @@ def reload(event):
     '''
         Reload source code. For reloading, unit tests are mandatory.
     '''
-    local("osascript -e 'display notification \"File %s changed.\" with title \"Reloading....\"'" % event.src_path)
+    with settings(warn_only=True):
+        local("osascript -e 'display notification \"File %s changed.\" with title \"Reloading....\"'" % event.src_path)
     logging.info('Reloading the source.')
     if run_tdd():
-        local("osascript -e 'display notification \"WireRouting unit tests FAILED!.\" with title \"Bummer\"'")    
-        return
+        with settings(warn_only=True):
+            local("osascript -e 'display notification \"WireRouting unit tests FAILED!.\" with title \"Bummer\"'")    
+            return
     sudo('supervisorctl restart wirerouting')
-    local("osascript -e 'display notification \"WireRouting reloaded.\" with title \"Matrix Reloaded\"'")
+    with settings(warn_only=True):
+        local("osascript -e 'display notification \"WireRouting reloaded.\" with title \"Matrix Reloaded\"'")
 
 def run():
     sudo('supervisorctl restart wirerouting')
