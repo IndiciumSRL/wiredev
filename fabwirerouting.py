@@ -39,7 +39,7 @@ def run_tdd():
     logging.info('Running unit tests')
     with cd(os.path.join( config.get('vm', 'base_dir') ,'wirerouting')):
         with settings(warn_only=True):
-            result = sudo('/usr/local/bin/py.test')
+            result = sudo('/usr/local/bin/py.test -x -vv')
             return result.failed
 
 def reload(event):
