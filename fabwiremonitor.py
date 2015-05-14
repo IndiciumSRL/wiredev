@@ -7,6 +7,8 @@ from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
+import utils
+
 log = logging.getLogger(__name__)
 
 
@@ -41,15 +43,15 @@ def run():
         logging.info('Waiting for events.')
         while True:
             try:
-                action,event = other_handler.queue.get(block=False, timeout=0.5)
+                action,event = other_handler.queue.get(block=True, timeout=0.5)
             except Queue.Empty:
                 continue
             if action == 'reload':
                 other_handler.reloading = False
-                local("osascript -e 'display notification \"File %s changed.\" with title \"Reloading....\"'" % event)
+                utils.growl("File %s changed." % event, "Reloading....")
                 logging.info('Reloading the source.')
                 sudo('supervisorctl restart wiremonitor')
-                local("osascript -e 'display notification \"WireMonitor reloaded.\" with title \"Matrix Reloaded\"'")
+                utils.growl("WireMonitor reloaded.", "Matrix Reloaded")
 
 
     except KeyboardInterrupt:
