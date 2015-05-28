@@ -11,6 +11,7 @@ from fabric.api import sudo, settings, task, env, local, get, put, cd
 import fabwirephone as wirephone
 import fabwiremonitor as wiremonitor
 import fabwirerouting as wirerouting
+import fabwireguiserver as wireguiserver
 import fabwirefax as wirefax
 from git import git
 from config import config

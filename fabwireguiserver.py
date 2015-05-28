@@ -7,6 +7,8 @@ from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
+import utils
+
 log = logging.getLogger(__name__)
 
 
@@ -28,32 +30,40 @@ class CodeEvents(FileSystemEventHandler):
             return
         logging.info('Not reloading because its not a Python file that has changed.')
 
-@task
-def test_prepare_integration():
-    sudo('supervisorctl stop all')
-    sudo("su postgres -c 'dropdb wirephone'")
-    sudo("su wirephone -c 'createdb wirephone'")
-    sudo("su wirephone -c 'psql wirephone < /vagrant/wirerouting/jenkins_wirephone.sql'")
-    sudo("su wirephone -c 'alembic -c /etc/wirephone/wirephone.ini upgrade head'")
-    sudo('supervisorctl start all')
+def run_tdd():
+    '''
+    Run unit tests for the project.
+    '''
+    logging.info('Running unit tests')
+    with cd(os.path.join( config.get('vm', 'base_dir') ,'wiregui-server')):
+        with settings(warn_only=True):
+            result = sudo('/usr/local/bin/py.test -x -vv')
+            return result.failed
 
-@task
-def test_integration():
-    with cd('/vagrant/wirerouting'):
-        sudo("su wirephone -c '/usr/local/bin/py.test -v -x --config=/etc/wirephone/wirerouting.ini --bddtestpath=/vagrant/wirerouting/tests/integration_data/'")
-@task
-def save_integration_db():
-    with cd('/vagrant/wirerouting'):
-        sudo("su wirephone -c 'pg_dump wirephone' > /vagrant/wirerouting/jenkins_wirephone.sql")        
+
+def reload(event):
+    '''
+        Reload source code. For reloading, unit tests are mandatory.
+    '''
+    with settings(warn_only=True):
+        utils.growl("File %s changed." % event, "Reloading....")
+    logging.info('Reloading the source.')
+    if run_tdd():
+        with settings(warn_only=True):
+            utils.growl("WireGui unit tests FAILED!", "Bummer")
+            return
+    sudo('supervisorctl restart wiregui')
+    with settings(warn_only=True):
+        utils.growl("WireGui reloaded.", "Matrix Reloaded")
 
 @task
 def run():
-    sudo('supervisorctl restart wirephone')
+    sudo('supervisorctl restart wiregui')
     try:
         event_handler = LoggingEventHandler()
         other_handler = CodeEvents()
         observer = Observer()
-        watch = observer.schedule(event_handler, './wirephone', recursive=True)
+        watch = observer.schedule(event_handler, './wiregui-server', recursive=True)
         observer.add_handler_for_watch(other_handler, watch)
         observer.start()
         logging.info('Waiting for events.')
@@ -63,11 +73,11 @@ def run():
             except Queue.Empty:
                 continue
             if action == 'reload':
+                reload(event)
                 other_handler.reloading = False
-                local("osascript -e 'display notification \"File %s changed.\" with title \"Reloading....\"'" % event)
-                logging.info('Reloading the source.')
-                sudo('supervisorctl restart wirephone')
-                local("osascript -e 'display notification \"Wirephone reloaded.\" with title \"Matrix Reloaded\"'")
+                
+                
+                
 
 
     except KeyboardInterrupt:

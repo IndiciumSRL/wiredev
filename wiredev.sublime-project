@@ -9,7 +9,7 @@
                 "wirerouting",
                 "wirefax",
                 "wiremonitorserver",
-                "wiregui"
+                "wiregui-server"
             ]
 		}
 	],

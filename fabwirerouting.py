@@ -69,7 +69,7 @@ def run():
         logging.info('Waiting for events.')
         while True:
             try:
-                action,event = other_handler.queue.get(block=False, timeout=0.5)
+                action,event = other_handler.queue.get(block=True, timeout=0.5)
             except Queue.Empty:
                 continue
             if action == 'reload':
