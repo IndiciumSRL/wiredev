@@ -1,3 +1,4 @@
+import os
 import logging
 import Queue
 from threading import Timer
@@ -7,6 +8,7 @@ from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
+from config import config
 import utils
 
 log = logging.getLogger(__name__)

@@ -37,7 +37,7 @@ def run():
         event_handler = LoggingEventHandler()
         other_handler = CodeEvents()
         observer = Observer()
-        watch = observer.schedule(event_handler, './wiremonitorserver', recursive=True)
+        watch = observer.schedule(event_handler, './wireportalbackend', recursive=True)
         observer.add_handler_for_watch(other_handler, watch)
         observer.start()
         logging.info('Waiting for events.')

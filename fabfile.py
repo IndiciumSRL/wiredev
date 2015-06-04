@@ -9,7 +9,7 @@ from watchdog.observers import Observer
 from fabric.api import sudo, settings, task, env, local, get, put, cd
 
 import fabwirephone as wirephone
-import fabwiremonitor as wiremonitor
+import fabwireportal as wireportal
 import fabwirerouting as wirerouting
 import fabwireguiserver as wireguiserver
 import fabwirefax as wirefax
